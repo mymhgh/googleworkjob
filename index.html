@@ -7,7 +7,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -19,8 +18,6 @@
             --tg-theme-section-bg-color: #2d2d2d;
             --tg-theme-accent-color: #5682e1;
             --tg-theme-success-color: #34c759;
-            --tg-theme-warning-color: #ffcc00;
-            --tg-theme-error-color: #ff3b30;
         }
         
         body {
@@ -91,14 +88,6 @@
         
         .stat-card.clickable:active {
             transform: scale(0.98);
-        }
-        
-        .clickable-indicator {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            color: var(--tg-theme-accent-color);
-            font-size: 14px;
         }
         
         .balance-transfer-btn {
@@ -191,6 +180,13 @@
             margin-top: 2px;
         }
         
+        .task-description {
+            color: #bbb;
+            font-size: 14px;
+            margin: 8px 0;
+            display: none; /* ডেসক্রিপশন কার্ডে দেখাবো না */
+        }
+        
         .task-amount {
             color: var(--tg-theme-button-color);
             font-weight: bold;
@@ -217,7 +213,7 @@
             width: 100%;
             text-align: center;
             display: block;
-            transition: all 0.3s ease;
+            transition: background-color 0.2s;
         }
         
         .btn:active {
@@ -228,6 +224,12 @@
             background-color: #555;
             color: #999;
             cursor: not-allowed;
+        }
+        
+        .btn-secondary {
+            background-color: var(--tg-theme-secondary-bg-color);
+            color: var(--tg-theme-text-color);
+            border: 1px solid #444;
         }
         
         .modal {
@@ -255,7 +257,7 @@
             position: relative;
         }
         
-        .submissions-modal-content {
+        .history-modal-content {
             background-color: var(--tg-theme-bg-color);
             margin: 20px auto;
             padding: 25px;
@@ -287,16 +289,6 @@
         
         .form-group {
             margin-bottom: 18px;
-            display: none;
-            opacity: 0;
-            transform: translateY(-10px);
-            transition: all 0.5s ease;
-        }
-        
-        .form-group.visible {
-            display: block;
-            opacity: 1;
-            transform: translateY(0);
         }
         
         .form-group label {
@@ -305,7 +297,7 @@
             font-weight: 500;
         }
         
-        .form-group input, .form-group textarea {
+        .form-group input, .form-group textarea, .form-group select {
             width: 100%;
             padding: 14px;
             border-radius: 10px;
@@ -322,6 +314,103 @@
             margin-bottom: 18px;
             background-color: #000;
             min-height: 200px;
+        }
+        
+        .tab-container {
+            margin-top: 20px;
+        }
+        
+        .tab-buttons {
+            display: flex;
+            border-bottom: 1px solid #444;
+            margin-bottom: 16px;
+        }
+        
+        .tab-btn {
+            padding: 12px 18px;
+            background: none;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            font-weight: bold;
+            transition: color 0.2s;
+            font-size: 15px;
+        }
+        
+        .tab-btn.active {
+            color: var(--tg-theme-button-color);
+            border-bottom: 2px solid var(--tg-theme-button-color);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .history-item {
+            padding: 15px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--tg-theme-section-bg-color);
+            margin-bottom: 10px;
+            border-radius: 12px;
+        }
+        
+        .history-details {
+            flex: 1;
+        }
+        
+        .history-type {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .history-date {
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .history-amount {
+            font-weight: bold;
+        }
+        
+        .status-pending {
+            color: #ff9800;
+        }
+        
+        .status-approved {
+            color: var(--tg-theme-success-color);
+        }
+        
+        .status-rejected {
+            color: #f44336;
+        }
+        
+        .no-tasks {
+            text-align: center;
+            padding: 30px;
+            color: #888;
+            font-style: italic;
+        }
+        
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--tg-theme-button-color);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
         
         .task-instructions {
@@ -401,103 +490,25 @@
             display: none;
         }
         
-        .upload-progress-popup {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: var(--tg-theme-section-bg-color);
-            padding: 20px;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-            z-index: 2000;
-            text-align: center;
+        .upload-loading {
             display: none;
-            max-width: 80%;
+            text-align: center;
+            margin: 10px 0;
+            color: #aaa;
+            font-size: 14px;
+        }
+        
+        .upload-loading .loader {
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+            margin-right: 10px;
+            border-width: 2px;
         }
         
         .go-work-btn {
             margin-bottom: 20px;
             background-color: var(--tg-theme-success-color);
-            transition: all 0.3s ease;
-        }
-        
-        .submission-item {
-            padding: 15px;
-            border-bottom: 1px solid #333;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: var(--tg-theme-section-bg-color);
-            margin-bottom: 10px;
-            border-radius: 12px;
-        }
-        
-        .submission-details {
-            flex: 1;
-        }
-        
-        .submission-type {
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        
-        .submission-date {
-            font-size: 12px;
-            color: #888;
-        }
-        
-        .submission-amount {
-            font-weight: bold;
-        }
-        
-        .status-pending {
-            color: var(--tg-theme-warning-color);
-        }
-        
-        .status-approved {
-            color: var(--tg-theme-success-color);
-        }
-        
-        .status-rejected {
-            color: var(--tg-theme-error-color);
-        }
-        
-        .no-tasks {
-            text-align: center;
-            padding: 30px;
-            color: #888;
-            font-style: italic;
-        }
-        
-        .loader {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid var(--tg-theme-button-color);
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .slide-down {
-            animation: slideDown 0.5s ease forwards;
         }
     </style>
 </head>
@@ -530,9 +541,6 @@
             <div class="stat-card clickable" id="pending-work-card">
                 <div class="stat-label">PENDING WORK</div>
                 <div class="stat-value" id="pending-work">0</div>
-                <div class="clickable-indicator">
-                    <i class="fas fa-chevron-down"></i> ক্লিক করুন
-                </div>
             </div>
         </div>
         
@@ -544,6 +552,19 @@
         </div>
         <div class="tasks-container" id="tasks-container">
             <div class="loader" id="tasks-loader"></div>
+            <!-- Tasks will be loaded here dynamically -->
+        </div>
+        
+        <div class="tab-container">
+            <div class="tab-buttons">
+                <button class="tab-btn active" data-tab="history">History</button>
+            </div>
+            
+            <div id="history-tab" class="tab-content active">
+                <div id="history-list">
+                    <!-- History items will be added here dynamically -->
+                </div>
+            </div>
         </div>
     </div>
     
@@ -568,11 +589,14 @@
                 </ol>
             </div>
             
-            <button id="go-work-btn" class="btn go-work-btn">Go to Work</button>
+            <button id="go-work-btn" class="btn go-work-btn" style="display: none;">Go Work</button>
             
             <div id="screenshot-input-container" class="form-group">
                 <label for="screenshot">Screenshot of your review</label>
                 <input type="file" id="screenshot" accept="image/*">
+                <div class="upload-loading" id="upload-loading">
+                    <div class="loader"></div> <span>Uploading image...</span>
+                </div>
             </div>
             
             <div id="review-link-input-container" class="form-group">
@@ -580,7 +604,7 @@
                 <input type="url" id="review-link" placeholder="Paste the review link here">
             </div>
             
-            <button id="submit-task-btn" class="btn" style="display: none;">Submit Task</button>
+            <button id="submit-task-btn" class="btn">Submit Task</button>
         </div>
     </div>
     
@@ -590,14 +614,28 @@
             <span class="close">&times;</span>
             <h2>Transfer Balance</h2>
             
-            <div class="form-group">
-                <label for="transfer-amount">Amount to Transfer</label>
-                <input type="number" id="transfer-amount" placeholder="Enter amount">
+            <div class="work-video">
+                <iframe width="100%" height="200" src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allowfullscreen></iframe>
+            </div>
+            
+            <div class="task-instructions">
+                <p>Transfer your earnings to your main balance or to a friend's account. Follow these steps:</p>
+                <ol>
+                    <li>Select transfer type (Own account or Friend's account)</li>
+                    <li>Enter the amount you want to transfer</li>
+                    <li>If transferring to a friend, enter their User ID</li>
+                    <li>Confirm the transfer</li>
+                </ol>
             </div>
             
             <div class="transfer-option">
                 <div class="transfer-option-btn active" data-type="own">Own Account</div>
                 <div class="transfer-option-btn" data-type="friend">Friend</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="transfer-amount">Amount to Transfer</label>
+                <input type="number" id="transfer-amount" placeholder="Enter amount">
             </div>
             
             <div class="friend-input-container" id="friend-input-container">
@@ -611,13 +649,13 @@
         </div>
     </div>
     
-    <!-- Submissions Modal -->
-    <div id="submissions-modal" class="modal">
-        <div class="submissions-modal-content">
+    <!-- History Modal -->
+    <div id="history-modal" class="modal">
+        <div class="history-modal-content">
             <span class="close">&times;</span>
-            <h2>Your Submissions</h2>
-            <div id="submissions-list">
-                <!-- Submissions will be loaded here dynamically -->
+            <h2>Work History</h2>
+            <div id="modal-history-list">
+                <!-- History items will be added here dynamically -->
             </div>
         </div>
     </div>
@@ -630,13 +668,6 @@
         <h3 id="success-title">Success!</h3>
         <p id="success-message">Your transfer was successful.</p>
         <button class="btn" id="success-ok-btn">OK</button>
-    </div>
-    
-    <!-- Upload Progress Popup -->
-    <div class="upload-progress-popup" id="upload-progress-popup">
-        <div class="loader"></div>
-        <h3>Submitting Your Task</h3>
-        <p>Please wait while we process your submission...</p>
     </div>
     
     <div class="overlay" id="overlay"></div>
@@ -656,9 +687,8 @@
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        const rdb = firebase.database();
         
-        // ImgBB API Key
+        // ImgBB API Key (you need to get a free API key from imgbb.com)
         const IMGBB_API_KEY = '74068e69fc2d65ac86341c5cc172bdf3';
         
         // Telegram WebApp initialization
@@ -683,7 +713,7 @@
         const refreshTasksBtn = document.getElementById('refresh-tasks-btn');
         const taskModal = document.getElementById('task-modal');
         const transferModal = document.getElementById('transfer-modal');
-        const submissionsModal = document.getElementById('submissions-modal');
+        const historyModal = document.getElementById('history-modal');
         const balanceTransferBtn = document.getElementById('balance-transfer-btn');
         const pendingWorkCard = document.getElementById('pending-work-card');
         const closeModalButtons = document.querySelectorAll('.close');
@@ -694,19 +724,16 @@
         const successPopup = document.getElementById('success-popup');
         const successOkBtn = document.getElementById('success-ok-btn');
         const overlay = document.getElementById('overlay');
+        const uploadLoading = document.getElementById('upload-loading');
         const goWorkBtn = document.getElementById('go-work-btn');
         const screenshotInputContainer = document.getElementById('screenshot-input-container');
         const reviewLinkInputContainer = document.getElementById('review-link-input-container');
-        const uploadProgressPopup = document.getElementById('upload-progress-popup');
-        const submissionsList = document.getElementById('submissions-list');
         
         // Global variables
         let currentTaskId = null;
         let currentTaskData = null;
         let userCompletedTasks = [];
         let transferType = 'own';
-        let countdownInterval = null;
-        let workStarted = false;
         
         // Initialize user data
         if (user && userId) {
@@ -721,16 +748,15 @@
         // Load user stats and tasks from Firestore
         loadUserData();
         loadTasks();
-        setupRealtimeListeners();
         
         // Event listeners
         refreshTasksBtn.addEventListener('click', loadTasks);
         balanceTransferBtn.addEventListener('click', openTransferModal);
-        pendingWorkCard.addEventListener('click', openSubmissionsModal);
+        pendingWorkCard.addEventListener('click', openHistoryModal);
         submitTaskBtn.addEventListener('click', submitTask);
         confirmTransferBtn.addEventListener('click', transferBalance);
         successOkBtn.addEventListener('click', closeSuccessPopup);
-        goWorkBtn.addEventListener('click', startWork);
+        goWorkBtn.addEventListener('click', openTaskLink);
         
         transferOptionButtons.forEach(btn => {
             btn.addEventListener('click', () => {
@@ -750,8 +776,7 @@
             btn.addEventListener('click', () => {
                 taskModal.style.display = 'none';
                 transferModal.style.display = 'none';
-                submissionsModal.style.display = 'none';
-                resetTaskModal();
+                historyModal.style.display = 'none';
             });
         });
         
@@ -796,34 +821,27 @@
                         GoogleReviewEarn: 0,
                         updated_at: new Date().toISOString()
                     });
-
-                    // Create realtime database entry
-                    const taskEarningRef = rdb.ref('TaskEarning/' + userId);
-                    taskEarningRef.set({
-                        balance: 0,
-                        updated_at: Date.now()
-                    });
                 }
             }).catch((error) => {
                 console.error("Error checking/saving user data: ", error);
             });
         }
         
-        function setupRealtimeListeners() {
+        function loadUserData() {
             if (!userId) return;
             
-            // Realtime listener for user balance
-            const balanceRef = rdb.ref('TaskEarning/' + userId);
-            balanceRef.on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    grBalance.textContent = `${data.balance || 0}৳`;
+            // Load user balance
+            const balanceRef = db.collection('userBalances').doc(userId);
+            balanceRef.get().then((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    grBalance.textContent = `${data.GoogleReviewEarn || 0}৳`;
                 }
             });
             
-            // Realtime listener for user stats
+            // Load user stats
             const userRef = db.collection('users').doc(userId);
-            userRef.onSnapshot((doc) => {
+            userRef.get().then((doc) => {
                 if (doc.exists) {
                     const userData = doc.data();
                     todayWork.textContent = userData.today_work || 0;
@@ -834,19 +852,6 @@
                     if (userData.completed_tasks) {
                         userCompletedTasks = userData.completed_tasks;
                     }
-                }
-            });
-        }
-        
-        function loadUserData() {
-            if (!userId) return;
-            
-            // Load from Firestore as backup
-            const balanceRef = db.collection('userBalances').doc(userId);
-            balanceRef.get().then((doc) => {
-                if (doc.exists) {
-                    const data = doc.data();
-                    grBalance.textContent = `${data.GoogleReviewEarn || 0}৳`;
                 }
             });
         }
@@ -914,7 +919,6 @@
             currentTaskId = taskId;
             currentTaskData = task;
             taskModal.style.display = 'block';
-            workStarted = false;
             
             // Set modal content based on task
             document.getElementById('modal-task-title').textContent = task.title;
@@ -952,84 +956,30 @@
                 document.getElementById('modal-task-video-container').style.display = 'none';
             }
             
-            // Reset input fields
-            resetTaskModal();
+            // Show/hide Go Work button
+            if (task.work_link) {
+                goWorkBtn.style.display = 'block';
+            } else {
+                goWorkBtn.style.display = 'none';
+            }
             
             // Show/hide input fields based on task settings
-            if (task.require_screenshot !== false) {
-                screenshotInputContainer.classList.add('visible');
+            if (task.require_screenshot !== undefined) {
+                screenshotInputContainer.style.display = task.require_screenshot ? 'block' : 'none';
             } else {
-                screenshotInputContainer.classList.remove('visible');
+                screenshotInputContainer.style.display = 'block'; // Default to show
             }
             
-            if (task.require_review_link !== false) {
-                reviewLinkInputContainer.classList.add('visible');
+            if (task.require_review_link !== undefined) {
+                reviewLinkInputContainer.style.display = task.require_review_link ? 'block' : 'none';
             } else {
-                reviewLinkInputContainer.classList.remove('visible');
-            }
-            
-            // Show Go Work button and hide Submit button initially
-            goWorkBtn.style.display = 'block';
-            goWorkBtn.textContent = 'Go to Work';
-            submitTaskBtn.style.display = 'none';
-        }
-        
-        function resetTaskModal() {
-            document.getElementById('screenshot').value = '';
-            document.getElementById('review-link').value = '';
-            workStarted = false;
-            goWorkBtn.style.display = 'block';
-            goWorkBtn.textContent = 'Go to Work';
-            submitTaskBtn.style.display = 'none';
-            
-            // Clear countdown if it exists
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
-                countdownInterval = null;
+                reviewLinkInputContainer.style.display = 'block'; // Default to show
             }
         }
         
-        function startWork() {
-            if (!workStarted) {
-                // Open work link in new tab
-                if (currentTaskData && currentTaskData.work_link) {
-                    window.open(currentTaskData.work_link, '_blank');
-                }
-                
-                // Change button text and start countdown
-                goWorkBtn.textContent = 'Working... (5)';
-                goWorkBtn.disabled = true;
-                
-                let countdown = 5;
-                countdownInterval = setInterval(() => {
-                    countdown--;
-                    goWorkBtn.textContent = `Working... (${countdown})`;
-                    
-                    if (countdown <= 0) {
-                        clearInterval(countdownInterval);
-                        workStarted = true;
-                        goWorkBtn.style.display = 'none';
-                        
-                        // Show input fields with animation
-                        setTimeout(() => {
-                            if (currentTaskData.require_screenshot !== false) {
-                                screenshotInputContainer.classList.add('visible', 'slide-down');
-                            }
-                            
-                            if (currentTaskData.require_review_link !== false) {
-                                setTimeout(() => {
-                                    reviewLinkInputContainer.classList.add('visible', 'slide-down');
-                                }, 100);
-                            }
-                            
-                            // Show submit button after inputs
-                            setTimeout(() => {
-                                submitTaskBtn.style.display = 'block';
-                                submitTaskBtn.classList.add('slide-down');
-                            }, 200);
-                        }, 100);
-                    }
-                }, 1000);
+        function openTaskLink() {
+            if (currentTaskData && currentTaskData.work_link) {
+                window.open(currentTaskData.work_link, '_blank');
             }
         }
         
@@ -1043,63 +993,9 @@
             transferType = 'own';
         }
         
-        function openSubmissionsModal() {
-            submissionsModal.style.display = 'block';
-            loadUserSubmissions();
-        }
-        
-        function loadUserSubmissions() {
-            if (!userId) return;
-            
-            submissionsList.innerHTML = '<div class="loader"></div>';
-            
-            db.collection('GoogleReviewTask')
-                .where('user_id', '==', userId)
-                .orderBy('created_at', 'desc')
-                .get()
-                .then((querySnapshot) => {
-                    submissionsList.innerHTML = '';
-                    
-                    if (querySnapshot.empty) {
-                        submissionsList.innerHTML = '<div class="no-tasks">No submissions found</div>';
-                        return;
-                    }
-                    
-                    querySnapshot.forEach((doc) => {
-                        const submission = doc.data();
-                        const submissionItem = document.createElement('div');
-                        submissionItem.className = 'submission-item';
-                        
-                        // Get task info
-                        let taskTitle = 'Unknown Task';
-                        if (submission.task_id) {
-                            db.collection('AdminTasks').doc(submission.task_id).get()
-                                .then((taskDoc) => {
-                                    if (taskDoc.exists) {
-                                        const taskData = taskDoc.data();
-                                        taskTitle = taskData.title;
-                                        submissionItem.querySelector('.submission-type').textContent = taskTitle;
-                                    }
-                                });
-                        }
-                        
-                        const statusClass = `status-${submission.status}`;
-                        
-                        submissionItem.innerHTML = `
-                            <div class="submission-details">
-                                <div class="submission-type">${taskTitle}</div>
-                                <div class="submission-date">${new Date(submission.created_at).toLocaleDateString('bn-BD')}</div>
-                            </div>
-                            <div class="${statusClass} submission-amount">${submission.status} | ${submission.amount}৳</div>
-                        `;
-                        
-                        submissionsList.appendChild(submissionItem);
-                    });
-                })
-                .catch((error) => {
-                    submissionsList.innerHTML = '<div class="no-tasks">Error loading submissions</div>';
-                    console.error("Error loading submissions: ", error);
-                });
+        function openHistoryModal() {
+            historyModal.style.display = 'block';
+            loadModalHistory();
         }
         
         function submitTask() {
@@ -1125,9 +1021,10 @@
             
             if (!userId || !currentTaskId) return;
             
-            // Show upload progress popup
-            uploadProgressPopup.style.display = 'block';
-            overlay.style.display = 'block';
+            // Show uploading indicator if screenshot is required
+            if (currentTaskData.require_screenshot !== false) {
+                uploadLoading.style.display = 'block';
+            }
             submitTaskBtn.disabled = true;
             
             // Upload image to ImgBB if screenshot is required
@@ -1170,10 +1067,6 @@
                         });
                 })
                 .then(() => {
-                    // Hide upload progress popup
-                    uploadProgressPopup.style.display = 'none';
-                    overlay.style.display = 'none';
-                    
                     // Reset form and close modal
                     document.getElementById('screenshot').value = '';
                     document.getElementById('review-link').value = '';
@@ -1181,18 +1074,17 @@
                     alert('Task submitted successfully! It will be reviewed soon.');
                     taskModal.style.display = 'none';
                     
-                    // Reload tasks to update UI
-                    loadTasks();
-                    loadUserData();
+                    // Reload page to update UI
+                    location.reload();
                 })
                 .catch((error) => {
-                    // Hide upload progress popup
-                    uploadProgressPopup.style.display = 'none';
-                    overlay.style.display = 'none';
-                    submitTaskBtn.disabled = false;
-                    
                     console.error("Error submitting task: ", error);
                     alert('Error submitting task: ' + error.message);
+                })
+                .finally(() => {
+                    // Hide uploading indicator
+                    uploadLoading.style.display = 'none';
+                    submitTaskBtn.disabled = false;
                 });
         }
         
@@ -1235,90 +1127,93 @@
             
             if (!userId) return;
             
-            // Get current balance from realtime database
-            const balanceRef = rdb.ref('TaskEarning/' + userId);
+            const balanceRef = db.collection('userBalances').doc(userId);
             
-            balanceRef.once('value').then((snapshot) => {
-                const currentBalance = snapshot.val()?.balance || 0;
-                
-                if (amount > currentBalance) {
-                    alert('Insufficient balance');
-                    return;
-                }
-                
-                if (transferType === 'own') {
-                    // Transfer to user's own main balance
-                    const userRef = db.collection('users').doc(userId);
+            balanceRef.get().then((doc) => {
+                if (doc.exists) {
+                    const currentBalance = doc.data().GoogleReviewEarn || 0;
                     
-                    userRef.update({
-                        balance: firebase.firestore.FieldValue.increment(amount)
-                    }).then(() => {
-                        // Update realtime database balance
-                        balanceRef.update({
-                            balance: firebase.database.ServerValue.increment(-amount),
-                            updated_at: Date.now()
-                        }).then(() => {
-                            // Save transfer history
-                            const historyRef = db.collection('transferHistory').doc();
-                            historyRef.set({
-                                user_id: userId,
-                                type: 'own',
-                                amount: amount,
-                                status: 'completed',
-                                created_at: new Date().toISOString()
-                            }).then(() => {
-                                showSuccessPopup('Transfer Successful', `Successfully transferred ${amount}৳ to your main balance`);
-                                transferModal.style.display = 'none';
-                            });
-                        });
-                    });
-                } else {
-                    // Transfer to friend's balance
-                    const friendBalanceRef = rdb.ref('TaskEarning/' + friendId);
+                    if (amount > currentBalance) {
+                        alert('Insufficient balance');
+                        return;
+                    }
                     
-                    // First check if friend exists
-                    db.collection('users').doc(friendId).get().then((friendDoc) => {
-                        if (!friendDoc.exists) {
-                            alert('Friend user not found');
-                            return;
-                        }
+                    if (transferType === 'own') {
+                        // Transfer to user's own main balance
+                        const userRef = db.collection('users').doc(userId);
                         
-                        const friendData = friendDoc.data();
-                        
-                        // Update friend's balance
-                        friendBalanceRef.update({
-                            balance: firebase.database.ServerValue.increment(amount),
-                            updated_at: Date.now()
+                        userRef.update({
+                            balance: firebase.firestore.FieldValue.increment(amount)
                         }).then(() => {
-                            // Update sender's balance
+                            // Update GoogleReviewEarn balance
                             balanceRef.update({
-                                balance: firebase.database.ServerValue.increment(-amount),
-                                updated_at: Date.now()
+                                GoogleReviewEarn: firebase.firestore.FieldValue.increment(-amount),
+                                updated_at: new Date().toISOString()
                             }).then(() => {
                                 // Save transfer history
                                 const historyRef = db.collection('transferHistory').doc();
                                 historyRef.set({
                                     user_id: userId,
-                                    friend_id: friendId,
-                                    friend_name: `${friendData.first_name} ${friendData.last_name || ''}`,
-                                    type: 'friend',
+                                    type: 'own',
                                     amount: amount,
                                     status: 'completed',
                                     created_at: new Date().toISOString()
                                 }).then(() => {
-                                    showSuccessPopup('Transfer Successful', `Successfully transferred ${amount}৳ to ${friendData.first_name} ${friendData.last_name || ''}`);
+                                    showSuccessPopup('Transfer Successful', `Successfully transferred ${amount}৳ to your main balance`);
                                     transferModal.style.display = 'none';
+                                    loadUserData();
                                 });
                             });
                         });
-                    }).catch((error) => {
-                        console.error("Error transferring to friend: ", error);
-                        alert('Error transferring balance. Please try again.');
-                    });
+                    } else {
+                        // Transfer to friend's balance
+                        const friendBalanceRef = db.collection('userBalances').doc(friendId);
+                        
+                        // First check if friend exists
+                        db.collection('users').doc(friendId).get().then((friendDoc) => {
+                            if (!friendDoc.exists) {
+                                alert('Friend user not found');
+                                return;
+                            }
+                            
+                            const friendData = friendDoc.data();
+                            
+                            // Update friend's balance
+                            friendBalanceRef.set({
+                                user_id: friendId,
+                                GoogleReviewEarn: firebase.firestore.FieldValue.increment(amount),
+                                updated_at: new Date().toISOString()
+                            }, { merge: true }).then(() => {
+                                // Update sender's balance
+                                balanceRef.update({
+                                    GoogleReviewEarn: firebase.firestore.FieldValue.increment(-amount),
+                                    updated_at: new Date().toISOString()
+                                }).then(() => {
+                                    // Save transfer history
+                                    const historyRef = db.collection('transferHistory').doc();
+                                    historyRef.set({
+                                        user_id: userId,
+                                        friend_id: friendId,
+                                        friend_name: `${friendData.first_name} ${friendData.last_name || ''}`,
+                                        type: 'friend',
+                                        amount: amount,
+                                        status: 'completed',
+                                        created_at: new Date().toISOString()
+                                    }).then(() => {
+                                        showSuccessPopup('Transfer Successful', `Successfully transferred ${amount}৳ to ${friendData.first_name} ${friendData.last_name || ''}`);
+                                        transferModal.style.display = 'none';
+                                        loadUserData();
+                                    });
+                                });
+                            });
+                        }).catch((error) => {
+                            console.error("Error transferring to friend: ", error);
+                            alert('Error transferring balance. Please try again.');
+                        });
+                    }
+                } else {
+                    alert('No balance found');
                 }
-            }).catch((error) => {
-                console.error("Error getting balance: ", error);
-                alert('Error transferring balance. Please try again.');
             });
         }
         
@@ -1334,24 +1229,175 @@
             overlay.style.display = 'none';
         }
         
+        function loadHistory() {
+            if (!userId) return;
+            
+            const historyList = document.getElementById('history-list');
+            historyList.innerHTML = '<div class="loader"></div>';
+            
+            // Load task history
+            const taskHistoryPromise = db.collection('GoogleReviewTask')
+                .where('user_id', '==', userId)
+                .orderBy('created_at', 'desc')
+                .get();
+            
+            // Load transfer history
+            const transferHistoryPromise = db.collection('transferHistory')
+                .where('user_id', '==', userId)
+                .orderBy('created_at', 'desc')
+                .get();
+            
+            Promise.all([taskHistoryPromise, transferHistoryPromise]).then(([taskSnapshot, transferSnapshot]) => {
+                historyList.innerHTML = '';
+                
+                if (taskSnapshot.empty && transferSnapshot.empty) {
+                    historyList.innerHTML = '<div class="no-tasks">No history found</div>';
+                    return;
+                }
+                
+                // Process task history
+                taskSnapshot.forEach((doc) => {
+                    const task = doc.data();
+                    const historyItem = document.createElement('div');
+                    historyItem.className = 'history-item';
+                    
+                    const statusClass = `status-${task.status}`;
+                    
+                    historyItem.innerHTML = `
+                        <div class="history-details">
+                            <div class="history-type">Google Review Task</div>
+                            <div class="history-date">${new Date(task.created_at).toLocaleDateString()}</div>
+                        </div>
+                        <div class="${statusClass} history-amount">${task.status} | ${task.amount}৳</div>
+                    `;
+                    
+                    historyList.appendChild(historyItem);
+                });
+                
+                // Process transfer history
+                transferSnapshot.forEach((doc) => {
+                    const transfer = doc.data();
+                    const historyItem = document.createElement('div');
+                    historyItem.className = 'history-item';
+                    
+                    let typeText = 'Transfer to Main Balance';
+                    let details = '';
+                    
+                    if (transfer.type === 'friend') {
+                        typeText = `Transfer to ${transfer.friend_name}`;
+                        details = `Friend Transfer`;
+                    }
+                    
+                    historyItem.innerHTML = `
+                        <div class="history-details">
+                            <div class="history-type">${typeText}</div>
+                            <div class="history-date">${new Date(transfer.created_at).toLocaleDateString()}</div>
+                        </div>
+                        <div class="status-approved history-amount">-${transfer.amount}৳</div>
+                    `;
+                    
+                    historyList.appendChild(historyItem);
+                });
+            }).catch((error) => {
+                historyList.innerHTML = '<div class="no-tasks">Error loading history</div>';
+                console.error("Error loading history: ", error);
+            });
+        }
+        
+        function loadModalHistory() {
+            if (!userId) return;
+            
+            const modalHistoryList = document.getElementById('modal-history-list');
+            modalHistoryList.innerHTML = '<div class="loader"></div>';
+            
+            // Load task history
+            const taskHistoryPromise = db.collection('GoogleReviewTask')
+                .where('user_id', '==', userId)
+                .orderBy('created_at', 'desc')
+                .get();
+            
+            // Load transfer history
+            const transferHistoryPromise = db.collection('transferHistory')
+                .where('user_id', '==', userId)
+                .orderBy('created_at', 'desc')
+                .get();
+            
+            Promise.all([taskHistoryPromise, transferHistoryPromise]).then(([taskSnapshot, transferSnapshot]) => {
+                modalHistoryList.innerHTML = '';
+                
+                if (taskSnapshot.empty && transferSnapshot.empty) {
+                    modalHistoryList.innerHTML = '<div class="no-tasks">No history found</div>';
+                    return;
+                }
+                
+                // Process task history
+                taskSnapshot.forEach((doc) => {
+                    const task = doc.data();
+                    const historyItem = document.createElement('div');
+                    historyItem.className = 'history-item';
+                    
+                    const statusClass = `status-${task.status}`;
+                    
+                    historyItem.innerHTML = `
+                        <div class="history-details">
+                            <div class="history-type">Google Review Task</div>
+                            <div class="history-date">${new Date(task.created_at).toLocaleDateString()}</div>
+                        </div>
+                        <div class="${statusClass} history-amount">${task.status} | ${task.amount}৳</div>
+                    `;
+                    
+                    modalHistoryList.appendChild(historyItem);
+                });
+                
+                // Process transfer history
+                transferSnapshot.forEach((doc) => {
+                    const transfer = doc.data();
+                    const historyItem = document.createElement('div');
+                    historyItem.className = 'history-item';
+                    
+                    let typeText = 'Transfer to Main Balance';
+                    let details = '';
+                    
+                    if (transfer.type === 'friend') {
+                        typeText = `Transfer to ${transfer.friend_name}`;
+                        details = `Friend Transfer`;
+                    }
+                    
+                    historyItem.innerHTML = `
+                        <div class="history-details">
+                            <div class="history-type">${typeText}</div>
+                            <div class="history-date">${new Date(transfer.created_at).toLocaleDateString()}</div>
+                        </div>
+                        <div class="status-approved history-amount">-${transfer.amount}৳</div>
+                    `;
+                    
+                    modalHistoryList.appendChild(historyItem);
+                });
+            }).catch((error) => {
+                modalHistoryList.innerHTML = '<div class="no-tasks">Error loading history</div>';
+                console.error("Error loading history: ", error);
+            });
+        }
+        
         // Close modals if clicked outside
         window.addEventListener('click', (event) => {
             if (event.target === taskModal) {
                 taskModal.style.display = 'none';
-                resetTaskModal();
             }
             if (event.target === transferModal) {
                 transferModal.style.display = 'none';
             }
-            if (event.target === submissionsModal) {
-                submissionsModal.style.display = 'none';
+            if (event.target === historyModal) {
+                historyModal.style.display = 'none';
             }
             if (event.target === overlay) {
                 successPopup.style.display = 'none';
                 overlay.style.display = 'none';
-                uploadProgressPopup.style.display = 'none';
             }
         });
+        
+        // Load history when page loads
+        loadHistory();
     </script>
 </body>
-  </html>
+</html>
