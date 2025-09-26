@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Review Work</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --tg-theme-bg-color: #212121;
+            --tg-theme-text-color: #ffffff;
+            --tg-theme-button-color: #8774e1;
+            --tg-theme-button-text-color: #ffffff;
+            --tg-theme-secondary-bg-color: #181818;
+            --tg-theme-section-bg-color: #2d2d2d;
+            --tg-theme-accent-color: #5682e1;
+            --tg-theme-success-color: #34c759;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--tg-theme-bg-color);
+            color: var(--tg-theme-text-color);
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 100%;
+            padding: 16px;
+            padding-bottom: 70px;
+            overflow: hidden;
+        }
+        
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 12px;
+            background: linear-gradient(145deg, #2d2d2d, #252525);
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .profile-img {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin-right: 15px;
+            border: 2px solid var(--tg-theme-accent-color);
+        }
+        
+        .profile-info h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .profile-info p {
+            margin: 4px 0 0;
+            color: #aaa;
+            font-size: 14px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(145deg, var(--tg-theme-section-bg-color), var(--tg-theme-secondary-bg-color));
+            border-radius: 16px;
+            padding: 18px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border: 1px solid #333;
+            position: relative;
+        }
+        
+        .stat-card.clickable {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .stat-card.clickable:active {
+            transform: scale(0.98);
+        }
+        
+        .balance-transfer-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: var(--tg-theme-accent-color);
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 8px 0;
+            color: var(--tg-theme-accent-color);
+        }
+        
+        .stat-label {
+            color: #aaa;
+            font-size: 14px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 20px 0 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #444;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .search-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .search-box {
+            width: 150px;
+            padding: 8px 12px;
+            border-radius: 12px;
+            border: 1px solid #444;
+            background-color: var(--tg-theme-secondary-bg-color);
+            color: var(--tg-theme-text-color);
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .search-box:focus {
+            outline: none;
+            border-color: var(--tg-theme-accent-color);
+        }
+        
+        .refresh-btn {
+            background: none;
+            border: none;
+            color: var(--tg-theme-accent-color);
+            font-size: 18px;
+            cursor: pointer;
+        }
+        
+        .tasks-container {
+            margin-bottom: 20px;
+        }
+        
+        .task-card {
+            background-color: var(--tg-theme-section-bg-color);
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border: 1px solid #333;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .task-card:active {
+            transform: scale(0.98);
+        }
+        
+        .task-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .task-logo {
+            width: 45px;
+            height: 45px;
+            margin-right: 15px;
+            border-radius: 8px;
+        }
+        
+        .task-title {
+            font-size: 17px;
+            font-weight: bold;
+            margin: 0;
+        }
+        
+        .task-number {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 2px;
+        }
+        
+        .task-progress {
+            background-color: var(--tg-theme-secondary-bg-color);
+            border-radius: 10px;
+            height: 8px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        
+        .task-progress-bar {
+            height: 100%;
+            background-color: var(--tg-theme-success-color);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        
+        .task-counter {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 10px;
+        }
+        
+        .task-description {
+            color: #bbb;
+            font-size: 14px;
+            margin: 8px 0;
+            display: none;
+        }
+        
+        .task-amount {
+            color: var(--tg-theme-button-color);
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .task-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 12px;
+            font-size: 13px;
+            color: #888;
+        }
+        
+        .btn {
+            background-color: var(--tg-theme-button-color);
+            color: var(--tg-theme-button-text-color);
+            border: none;
+            border-radius: 12px;
+            padding: 14px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            text-align: center;
+            display: block;
+            transition: background-color 0.2s;
+        }
+        
+        .btn:active {
+            background-color: #6a59b5;
+        }
+        
+        .btn:disabled {
+            background-color: #555;
+            color: #999;
+            cursor: not-allowed;
+        }
+        
+        .btn-secondary {
+            background-color: var(--tg-theme-secondary-bg-color);
+            color: var(--tg-theme-text-color);
+            border: 1px solid #444;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            overflow-y: auto;
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background-color: var(--tg-theme-bg-color);
+            margin: 20px auto;
+            padding: 25px;
+            border-radius: 16px;
+            max-width: 100%;
+            width: 90%;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            border: 1px solid #444;
+            position: relative;
+        }
+        
+        .history-modal-content {
+            background-color: var(--tg-theme-bg-color);
+            margin: 20px auto;
+            padding: 25px;
+            border-radius: 16px;
+            max-width: 100%;
+            width: 90%;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            border: 1px solid #444;
+            position: relative;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .close {
+            color: #aaa;
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.2s;
+            z-index: 10;
+        }
+        
+        .close:hover {
+            color: #fff;
+        }
+        
+        .form-group {
+            margin-bottom: 18px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid #444;
+            background-color: var(--tg-theme-secondary-bg-color);
+            color: var(--tg-theme-text-color);
+            box-sizing: border-box;
+            font-size: 15px;
+        }
+        
+        .work-video {
+            width: 100%;
+            border-radius: 12px;
+            margin-bottom: 18px;
+            background-color: #000;
+            min-height: 200px;
+        }
+        
+        .tab-container {
+            margin-top: 20px;
+        }
+        
+        .tab-buttons {
+            display: flex;
+            border-bottom: 1px solid #444;
+            margin-bottom: 16px;
+        }
+        
+        .tab-btn {
+            padding: 12px 18px;
+            background: none;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            font-weight: bold;
+            transition: color 0.2s;
+            font-size: 15px;
+        }
+        
+        .tab-btn.active {
+            color: var(--tg-theme-button-color);
+            border-bottom: 2px solid var(--tg-theme-button-color);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .history-item {
+            padding: 15px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--tg-theme-section-bg-color);
+            margin-bottom: 10px;
+            border-radius: 12px;
+        }
+        
+        .history-details {
+            flex: 1;
+        }
+        
+        .history-type {
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        .history-date {
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .history-amount {
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .status-pending {
+            color: #ff9800;
+        }
+        
+        .status-approved {
+            color: var(--tg-theme-success-color);
+        }
+        
+        .status-rejected {
+            color: #f44336;
+        }
+        
+        .no-tasks {
+            text-align: center;
+            padding: 30px;
+            color: #888;
+            font-style: italic;
+        }
+        
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--tg-theme-button-color);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .task-instructions {
+            background-color: var(--tg-theme-secondary-bg-color);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .task-instructions ol {
+            padding-left: 20px;
+            margin: 10px 0;
+        }
+        
+        .task-instructions li {
+            margin-bottom: 8px;
+        }
+        
+        .transfer-option {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .transfer-option-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #444;
+            background-color: var(--tg-theme-secondary-bg-color);
+            color: var(--tg-theme-text-color);
+            text-align: center;
+            cursor: pointer;
+        }
+        
+        .transfer-option-btn.active {
+            background-color: var(--tg-theme-button-color);
+            color: var(--tg-theme-button-text-color);
+        }
+        
+        .friend-input-container {
+            display: none;
+            margin-top: 15px;
+        }
+        
+        .success-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: var(--tg-theme-section-bg-color);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            z-index: 2000;
+            text-align: center;
+            display: none;
+            max-width: 80%;
+        }
+        
+        .success-icon {
+            font-size: 50px;
+            color: var(--tg-theme-success-color);
+            margin-bottom: 15px;
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1500;
+            display: none;
+        }
+        
+        .upload-loading {
+            display: none;
+            text-align: center;
+            margin: 10px 0;
+            color: #aaa;
+            font-size: 14px;
+        }
+        
+        .upload-loading .loader {
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+            margin-right: 10px;
+            border-width: 2px;
+        }
+        
+        .go-work-btn {
+            margin-bottom: 20px;
+            background-color: var(--tg-theme-success-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img id="profile-img" class="profile-img" src="" alt="Profile">
+            <div class="profile-info">
+                <h2 id="user-name"></h2>
+                <p id="user-username"></p>
+            </div>
+        </div>
+        
+        <div class="stats-grid">
+            <!-- বাম পাশে - GR Balance (ট্রান্সফার বাটনসহ) -->
+            <div class="stat-card">
+                <button class="balance-transfer-btn" id="balance-transfer-btn">
+                    <i class="fas fa-exchange-alt"></i>
+                </button>
+                <div class="stat-label">GR BALANCE</div>
+                <div class="stat-value" id="gr-balance">0৳</div>
+            </div>
+            
+            <!-- ডান পাশে - Main Balance -->
+            <div class="stat-card">
+                <div class="stat-label">MAIN BALANCE</div>
+                <div class="stat-value" id="main-balance">0৳</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-label">TOTAL WORK</div>
+                <div class="stat-value" id="total-work">0</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-label">PENDING WORK</div>
+                <div class="stat-value" id="pending-work">0</div>
+            </div>
+        </div>
+        
+        <div class="section-title">
+            <span>Available Tasks</span>
+            <div class="search-container">
+                <input type="text" class="search-box" id="task-search" placeholder="Search task...">
+                <button class="refresh-btn" id="refresh-tasks-btn">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="tasks-container" id="tasks-container">
+            <div class="loader" id="tasks-loader"></div>
+        </div>
+    </div>
+    
+    <!-- Task Modal -->
+    <div id="task-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modal-task-title">Google Review Task</h2>
+            
+            <div class="work-video" id="modal-task-video-container">
+                <iframe id="modal-task-video" width="100%" height="200" src="" frameborder="0" allowfullscreen></iframe>
+            </div>
+            
+            <div class="task-instructions">
+                <p id="modal-task-description">Complete the following steps:</p>
+                <ol id="modal-task-steps">
+                    <li>Click the link below to open the Google review page</li>
+                    <li>Wait for 5 seconds after the page loads</li>
+                    <li>Submit a genuine review</li>
+                    <li>Take a screenshot of your review</li>
+                    <li>Return to this app and submit the screenshot and review link</li>
+                </ol>
+            </div>
+            
+            <button id="go-work-btn" class="btn go-work-btn" style="display: none;">Go Work</button>
+            
+            <div id="screenshot-input-container" class="form-group">
+                <label for="screenshot">Screenshot of your review</label>
+                <input type="file" id="screenshot" accept="image/*">
+                <div class="upload-loading" id="upload-loading">
+                    <div class="loader"></div> <span>Uploading image...</span>
+                </div>
+            </div>
+            
+            <div id="review-link-input-container" class="form-group">
+                <label for="review-link">Review Link</label>
+                <input type="url" id="review-link" placeholder="Paste the review link here">
+            </div>
+            
+            <button id="submit-task-btn" class="btn">Submit Task</button>
+        </div>
+    </div>
+    
+    <!-- Transfer Balance Modal -->
+    <div id="transfer-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Transfer Balance</h2>
+            
+            <div class="work-video">
+                <iframe width="100%" height="200" src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allowfullscreen></iframe>
+            </div>
+            
+            <div class="task-instructions">
+                <p>Transfer your GR Balance to your main balance or to a friend's account. Follow these steps:</p>
+                <ol>
+                    <li>Select transfer type (Own account or Friend's account)</li>
+                    <li>Enter the amount you want to transfer</li>
+                    <li>If transferring to a friend, enter their User ID</li>
+                    <li>Confirm the transfer</li>
+                </ol>
+            </div>
+            
+            <div class="transfer-option">
+                <div class="transfer-option-btn active" data-type="own">Own Account</div>
+                <div class="transfer-option-btn" data-type="friend">Friend</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="transfer-amount">Amount to Transfer</label>
+                <input type="number" id="transfer-amount" placeholder="Enter amount">
+            </div>
+            
+            <div class="friend-input-container" id="friend-input-container">
+                <div class="form-group">
+                    <label for="friend-id">Friend's User ID</label>
+                    <input type="text" id="friend-id" placeholder="Enter friend's User ID">
+                </div>
+            </div>
+            
+            <button id="confirm-transfer-btn" class="btn">Confirm Transfer</button>
+        </div>
+    </div>
+    
+    <!-- Success Popup -->
+    <div class="success-popup" id="success-popup">
+        <div class="success-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <h3 id="success-title">Success!</h3>
+        <p id="success-message">Your transfer was successful.</p>
+        <button class="btn" id="success-ok-btn">OK</button>
+    </div>
+    
+    <div class="overlay" id="overlay"></div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCs6ePkTxvMjcERh6yAdvjPqxIu6X7jhRM",
+            authDomain: "fbm-market-bot.firebaseapp.com",
+            databaseURL: "https://fbm-market-bot-default-rtdb.firebaseio.com",
+            projectId: "fbm-market-bot",
+            storageBucket: "fbm-market-bot.firebasestorage.app",
+            messagingSenderId: "711610016805",
+            appId: "1:711610016805:web:c5a019c9af1485ac984bcc"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        
+        // Telegram Bot Token (Replace with your bot token)
+        const TELEGRAM_BOT_TOKEN = '7673657711:AAG9aHlpI8_Egvwi0fY9rxA4qyEfqOw16nU';
+        const TELEGRAM_CHANNEL_ID = '-1003098627237'; // Replace with your channel username
+        
+        // ImgBB API Key
+        const IMGBB_API_KEY = '74068e69fc2d65ac86341c5cc172bdf3';
+        
+        // Telegram WebApp initialization
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.enableClosingConfirmation();
+        
+        // User data from Telegram
+        const user = tg.initDataUnsafe.user;
+        const userId = user?.id.toString();
+        
+        // DOM elements
+        const profileImg = document.getElementById('profile-img');
+        const userName = document.getElementById('user-name');
+        const userUsername = document.getElementById('user-username');
+        const mainBalance = document.getElementById('main-balance');
+        const grBalance = document.getElementById('gr-balance');
+        const totalWork = document.getElementById('total-work');
+        const pendingWork = document.getElementById('pending-work');
+        const tasksContainer = document.getElementById('tasks-container');
+        const tasksLoader = document.getElementById('tasks-loader');
+        const refreshTasksBtn = document.getElementById('refresh-tasks-btn');
+        const taskSearch = document.getElementById('task-search');
+        const taskModal = document.getElementById('task-modal');
+        const transferModal = document.getElementById('transfer-modal');
+        const balanceTransferBtn = document.getElementById('balance-transfer-btn');
+        const closeModalButtons = document.querySelectorAll('.close');
+        const submitTaskBtn = document.getElementById('submit-task-btn');
+        const confirmTransferBtn = document.getElementById('confirm-transfer-btn');
+        const transferOptionButtons = document.querySelectorAll('.transfer-option-btn');
+        const friendInputContainer = document.getElementById('friend-input-container');
+        const successPopup = document.getElementById('success-popup');
+        const successOkBtn = document.getElementById('success-ok-btn');
+        const overlay = document.getElementById('overlay');
+        const uploadLoading = document.getElementById('upload-loading');
+        const goWorkBtn = document.getElementById('go-work-btn');
+        const screenshotInputContainer = document.getElementById('screenshot-input-container');
+        const reviewLinkInputContainer = document.getElementById('review-link-input-container');
+        
+        // Global variables
+        let currentTaskId = null;
+        let currentTaskData = null;
+        let transferType = 'own';
+        let allTasks = [];
+        let isConnected = false;
+        
+        // Initialize user data
+        if (user && userId) {
+            profileImg.src = user.photo_url || 'https://via.placeholder.com/50';
+            userName.textContent = `${user.first_name} ${user.last_name || ''}`;
+            userUsername.textContent = `@${user.username}`;
+            
+            // Check and save user data
+            checkAndSaveUserData(user);
+        }
+        
+        // Connect to database and load data
+        connectAndLoadData();
+        
+        // Event listeners
+        refreshTasksBtn.addEventListener('click', () => {
+            connectAndLoadData();
+        });
+        
+        balanceTransferBtn.addEventListener('click', openTransferModal);
+        submitTaskBtn.addEventListener('click', submitTask);
+        confirmTransferBtn.addEventListener('click', transferBalance);
+        successOkBtn.addEventListener('click', closeSuccessPopup);
+        goWorkBtn.addEventListener('click', openTaskLink);
+        
+        // Search functionality
+        taskSearch.addEventListener('input', filterTasks);
+        
+        transferOptionButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                transferOptionButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                transferType = btn.dataset.type;
+                
+                if (transferType === 'friend') {
+                    friendInputContainer.style.display = 'block';
+                } else {
+                    friendInputContainer.style.display = 'none';
+                }
+            });
+        });
+        
+        closeModalButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                taskModal.style.display = 'none';
+                transferModal.style.display = 'none';
+            });
+        });
+        
+        // Functions
+        function connectAndLoadData() {
+            if (isConnected) {
+                loadUserData();
+                loadTasks();
+                return;
+            }
+            
+            isConnected = true;
+            loadUserData();
+            loadTasks();
+            
+            // Disconnect after 30 seconds of inactivity
+            setTimeout(disconnectFromDatabase, 30000);
+        }
+        
+        function disconnectFromDatabase() {
+            isConnected = false;
+            console.log('Disconnected from database to save resources');
+        }
+        
+        function checkAndSaveUserData(user) {
+            if (!userId) return;
+            
+            connectAndLoadData();
+            
+            const userRef = db.collection('users').doc(userId);
+            
+            userRef.get().then((doc) => {
+                if (doc.exists) {
+                    userRef.update({
+                        first_name: user.first_name,
+                        last_name: user.last_name || '',
+                        username: user.username,
+                        photo_url: user.photo_url || '',
+                        last_login: new Date().toISOString()
+                    });
+                } else {
+                    userRef.set({
+                        id: userId,
+                        first_name: user.first_name,
+                        last_name: user.last_name || '',
+                        username: user.username,
+                        photo_url: user.photo_url || '',
+                        balance: 0,
+                        total_work: 0,
+                        pending_work: 0,
+                        created_at: new Date().toISOString(),
+                        last_login: new Date().toISOString()
+                    });
+                    
+                    const balanceRef = db.collection('userBalances').doc(userId);
+                    balanceRef.set({
+                        user_id: userId,
+                        GoogleReviewEarn: 0,
+                        updated_at: new Date().toISOString()
+                    });
+                    
+                    // Create UserGoogleReviewWork document
+                    const userWorkRef = db.collection('UserGoogleReviewWork').doc(userId);
+                    userWorkRef.set({
+                        user_id: userId,
+                        balance: 0,
+                        today_work: 0,
+                        total_work: 0,
+                        pending_work: 0,
+                        updated_at: new Date().toISOString()
+                    });
+                }
+            }).catch((error) => {
+                console.error("Error checking/saving user data: ", error);
+            });
+        }
+        
+        function loadUserData() {
+            if (!userId) return;
+            
+            // Load main balance from users collection
+            const userRef = db.collection('users').doc(userId);
+            userRef.get().then((doc) => {
+                if (doc.exists) {
+                    const userData = doc.data();
+                    mainBalance.textContent = `${userData.balance || 0}৳`;
+                    totalWork.textContent = userData.total_work || 0;
+                    pendingWork.textContent = userData.pending_work || 0;
+                }
+            });
+            
+            // Load GR balance
+            const balanceRef = db.collection('userBalances').doc(userId);
+            balanceRef.get().then((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    grBalance.textContent = `${data.GoogleReviewEarn || 0}৳`;
+                }
+            });
+        }
+        
+        function loadTasks() {
+            if (!userId) return;
+            
+            tasksContainer.innerHTML = '';
+            tasksLoader.style.display = 'block';
+            
+            db.collection('AdminTasks').get().then((querySnapshot) => {
+                tasksLoader.style.display = 'none';
+                allTasks = [];
+                
+                if (querySnapshot.empty) {
+                    tasksContainer.innerHTML = '<div class="no-tasks">No tasks available at the moment</div>';
+                    return;
+                }
+                
+                const taskPromises = [];
+                
+                querySnapshot.forEach((doc) => {
+                    const task = doc.data();
+                    const taskId = doc.id;
+                    task.id = taskId;
+                    
+                    // Get task counter data
+                    const counterPromise = db.collection('TaskCounters').doc(taskId).get()
+                        .then((counterDoc) => {
+                            if (counterDoc.exists) {
+                                task.counter = counterDoc.data();
+                            } else {
+                                task.counter = {
+                                    total_required: 50, // Default value
+                                    current_count: 0,
+                                    completed: false
+                                };
+                            }
+                            return task;
+                        });
+                    
+                    taskPromises.push(counterPromise);
+                });
+                
+                Promise.all(taskPromises).then((tasksWithCounters) => {
+                    allTasks = tasksWithCounters;
+                    displayTasks(allTasks);
+                });
+                
+            }).catch((error) => {
+                tasksLoader.style.display = 'none';
+                tasksContainer.innerHTML = '<div class="no-tasks">Error loading tasks. Please try again.</div>';
+                console.error("Error loading tasks: ", error);
+            });
+        }
+        
+        function displayTasks(tasks) {
+            tasksContainer.innerHTML = '';
+            
+            if (tasks.length === 0) {
+                tasksContainer.innerHTML = '<div class="no-tasks">No tasks found matching your search</div>';
+                return;
+            }
+            
+            tasks.forEach((task) => {
+                // Hide task if counter is completed (সকল ইউজারের কাজ মিলিয়ে limit পূরণ হলে)
+                if (task.counter && task.counter.completed) {
+                    return;
+                }
+                
+                const taskId = task.id;
+                const progress = task.counter ? (task.counter.current_count / task.counter.total_required) * 100 : 0;
+                
+                const taskCard = document.createElement('div');
+                taskCard.className = 'task-card';
+                taskCard.dataset.taskId = taskId;
+                
+                taskCard.innerHTML = `
+                    <div class="task-header">
+                        <img class="task-logo" src="${task.logo || 'https://via.placeholder.com/40'}" alt="${task.title} Logo">
+                        <div>
+                            <h3 class="task-title">${task.title}</h3>
+                            <div class="task-number">Task #${task.task_number || 'N/A'}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="task-counter">
+                        <span>Completed: ${task.counter ? task.counter.current_count : 0}/${task.counter ? task.counter.total_required : 50}</span>
+                        <span>${Math.round(progress)}%</span>
+                    </div>
+                    
+                    <div class="task-progress">
+                        <div class="task-progress-bar" style="width: ${progress}%"></div>
+                    </div>
+                    
+                    <p class="task-amount">Earn: ${task.amount}৳</p>
+                    <div class="task-meta">
+                        <span>${task.difficulty || 'Easy'}</span>
+                        <span>${task.time || '5 mins'}</span>
+                    </div>
+                    <button class="btn start-task-btn">
+                        Start Task
+                    </button>
+                `;
+                
+                tasksContainer.appendChild(taskCard);
+                
+                const startBtn = taskCard.querySelector('.start-task-btn');
+                startBtn.addEventListener('click', () => openTaskModal(taskId, task));
+            });
+        }
+        
+        function filterTasks() {
+            const searchTerm = taskSearch.value.toLowerCase().trim();
+            
+            if (!searchTerm) {
+                displayTasks(allTasks);
+                return;
+            }
+            
+            const filteredTasks = allTasks.filter(task => {
+                const taskNumber = task.task_number ? task.task_number.toString() : '';
+                const taskTitle = task.title ? task.title.toLowerCase() : '';
+                return taskNumber.includes(searchTerm) || taskTitle.includes(searchTerm);
+            });
+            
+            displayTasks(filteredTasks);
+        }
+        
+        function openTaskModal(taskId, task) {
+            connectAndLoadData(); // Reconnect for submission
+            
+            currentTaskId = taskId;
+            currentTaskData = task;
+            taskModal.style.display = 'block';
+            
+            document.getElementById('modal-task-title').textContent = task.title;
+            
+            if (task.task_number) {
+                document.getElementById('modal-task-title').textContent += ` (Task #${task.task_number})`;
+            }
+            
+            const descriptionElement = document.getElementById('modal-task-description');
+            if (task.description) {
+                descriptionElement.textContent = task.description;
+            } else {
+                descriptionElement.textContent = 'Complete the following steps:';
+            }
+            
+            if (task.instructions) {
+                const instructionsOl = document.getElementById('modal-task-steps');
+                instructionsOl.innerHTML = '';
+                
+                task.instructions.forEach(instruction => {
+                    const li = document.createElement('li');
+                    li.textContent = instruction;
+                    instructionsOl.appendChild(li);
+                });
+            }
+            
+            if (task.video_url) {
+                document.getElementById('modal-task-video').src = task.video_url;
+                document.getElementById('modal-task-video-container').style.display = 'block';
+            } else {
+                document.getElementById('modal-task-video-container').style.display = 'none';
+            }
+            
+            if (task.work_link) {
+                goWorkBtn.style.display = 'block';
+            } else {
+                goWorkBtn.style.display = 'none';
+            }
+            
+            if (task.require_screenshot !== undefined) {
+                screenshotInputContainer.style.display = task.require_screenshot ? 'block' : 'none';
+            } else {
+                screenshotInputContainer.style.display = 'block';
+            }
+            
+            if (task.require_review_link !== undefined) {
+                reviewLinkInputContainer.style.display = task.require_review_link ? 'block' : 'none';
+            } else {
+                reviewLinkInputContainer.style.display = 'block';
+            }
+        }
+        
+        function openTaskLink() {
+            if (currentTaskData && currentTaskData.work_link) {
+                window.open(currentTaskData.work_link, '_blank');
+            }
+        }
+        
+        function openTransferModal() {
+            connectAndLoadData(); // Reconnect for transfer
+            transferModal.style.display = 'block';
+            document.getElementById('transfer-amount').value = '';
+            document.getElementById('friend-id').value = '';
+            transferOptionButtons.forEach(b => b.classList.remove('active'));
+            document.querySelector('[data-type="own"]').classList.add('active');
+            friendInputContainer.style.display = 'none';
+            transferType = 'own';
+        }
+        
+        function checkDuplicateURL(reviewLink) {
+            return db.collection('GoogleReviewTask')
+                .where('review_link', '==', reviewLink)
+                .get()
+                .then((querySnapshot) => {
+                    return !querySnapshot.empty;
+                });
+        }
+        
+        function sendTelegramNotification(userData, taskData, submissionId) {
+            const message = `
+✅ *New Task Submission*
+
+*User:* ${userData.first_name} ${userData.last_name || ''}
+*Username:* @${userData.username}
+*Task:* ${taskData.title}
+*Task ID:* ${currentTaskId}
+*Amount:* ${taskData.amount}৳
+*Submission ID:* ${submissionId}
+
+*Review Link:* ${document.getElementById('review-link').value}
+
+User ID: ${userId}
+            `;
+            
+            // Send to channel
+            fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    chat_id: TELEGRAM_CHANNEL_ID,
+                    text: message,
+                    parse_mode: 'Markdown'
+                })
+            });
+            
+            // Send to user
+            fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    chat_id: userId,
+                    text: `✅ Your task "${taskData.title}" has been submitted successfully! It will be reviewed soon.`,
+                    parse_mode: 'Markdown'
+                })
+            });
+        }
+        
+        function submitTask() {
+            let screenshot = null;
+            let reviewLink = null;
+            
+            if (currentTaskData.require_screenshot !== false) {
+                screenshot = document.getElementById('screenshot').files[0];
+                if (!screenshot) {
+                    alert('Please provide screenshot');
+                    return;
+                }
+            }
+            
+            if (currentTaskData.require_review_link !== false) {
+                reviewLink = document.getElementById('review-link').value;
+                if (!reviewLink) {
+                    alert('Please provide review link');
+                    return;
+                }
+            }
+            
+            if (!userId || !currentTaskId) return;
+            
+            // Check for duplicate URL
+            checkDuplicateURL(reviewLink).then((isDuplicate) => {
+                if (isDuplicate) {
+                    alert('This review link has already been submitted by another user. Please submit a unique review.');
+                    return;
+                }
+                
+                // Continue with submission
+                if (currentTaskData.require_screenshot !== false) {
+                    uploadLoading.style.display = 'block';
+                }
+                submitTaskBtn.disabled = true;
+                
+                const uploadPromise = currentTaskData.require_screenshot !== false ? 
+                    uploadImageToImgBB(screenshot) : Promise.resolve('not_required');
+                
+                uploadPromise
+                    .then(imageUrl => {
+                        return db.collection('AdminTasks').doc(currentTaskId).get()
+                            .then((taskDoc) => {
+                                if (!taskDoc.exists) {
+                                    throw new Error('Task no longer exists');
+                                }
+                                
+                                const task = taskDoc.data();
+                                const taskAmount = task.amount || 10;
+                                const submissionId = Date.now().toString();
+                                
+                                // Update task counter (সকল ইউজারের কাজ মিলিয়ে)
+                                const counterRef = db.collection('TaskCounters').doc(currentTaskId);
+                                return counterRef.get().then((counterDoc) => {
+                                    let counterData = {
+                                        total_required: 50,
+                                        current_count: 0,
+                                        completed: false
+                                    };
+                                    
+                                    if (counterDoc.exists) {
+                                        counterData = counterDoc.data();
+                                    }
+                                    
+                                    // Increment counter (সকলের কাজ একসাথে count)
+                                    const newCount = (counterData.current_count || 0) + 1;
+                                    const isCompleted = newCount >= counterData.total_required;
+                                    
+                                    return counterRef.set({
+                                        total_required: counterData.total_required,
+                                        current_count: newCount,
+                                        completed: isCompleted,
+                                        updated_at: new Date().toISOString()
+                                    }).then(() => {
+                                        // Save to GoogleReviewTask
+                                        const taskRef = db.collection('GoogleReviewTask').doc(submissionId);
+                                        return taskRef.set({
+                                            user_id: userId,
+                                            task_id: currentTaskId,
+                                            screenshot: imageUrl,
+                                            review_link: reviewLink,
+                                            status: 'pending',
+                                            amount: taskAmount,
+                                            created_at: new Date().toISOString()
+                                        }).then(() => {
+                                            return { submissionId, taskAmount, isCompleted };
+                                        });
+                                    });
+                                });
+                            })
+                            .then(({ submissionId, taskAmount, isCompleted }) => {
+                                // Update user data (ব্যক্তিগত statistics)
+                                const userRef = db.collection('users').doc(userId);
+                                return userRef.update({
+                                    pending_work: firebase.firestore.FieldValue.increment(1),
+                                    total_work: firebase.firestore.FieldValue.increment(1)
+                                }).then(() => {
+                                    // Update UserGoogleReviewWork
+                                    const userWorkRef = db.collection('UserGoogleReviewWork').doc(userId);
+                                    return userWorkRef.set({
+                                        user_id: userId,
+                                        balance: firebase.firestore.FieldValue.increment(taskAmount),
+                                        today_work: firebase.firestore.FieldValue.increment(1),
+                                        total_work: firebase.firestore.FieldValue.increment(1),
+                                        pending_work: firebase.firestore.FieldValue.increment(1),
+                                        updated_at: new Date().toISOString()
+                                    }, { merge: true }).then(() => {
+                                        return { submissionId, taskAmount, isCompleted };
+                                    });
+                                });
+                            })
+                            .then(({ submissionId, taskAmount, isCompleted }) => {
+                                // Update GR Balance
+                                const balanceRef = db.collection('userBalances').doc(userId);
+                                return balanceRef.update({
+                                    GoogleReviewEarn: firebase.firestore.FieldValue.increment(taskAmount),
+                                    updated_at: new Date().toISOString()
+                                }).then(() => {
+                                    // Send Telegram notifications
+                                    const userData = {
+                                        first_name: user.first_name,
+                                        last_name: user.last_name || '',
+                                        username: user.username
+                                    };
+                                    
+                                    sendTelegramNotification(userData, currentTaskData, submissionId);
+                                    
+                                    // Reset form and close modal
+                                    document.getElementById('screenshot').value = '';
+                                    document.getElementById('review-link').value = '';
+                                    
+                                    alert('Task submitted successfully! It will be reviewed soon.');
+                                    taskModal.style.display = 'none';
+                                    
+                                    // Reload data
+                                    loadUserData();
+                                    loadTasks();
+                                    
+                                    if (isCompleted) {
+                                        alert('This task has been completed by all users. It will no longer be available.');
+                                    }
+                                });
+                            });
+                    })
+                    .catch((error) => {
+                        console.error("Error submitting task: ", error);
+                        alert('Error submitting task: ' + error.message);
+                    })
+                    .finally(() => {
+                        uploadLoading.style.display = 'none';
+                        submitTaskBtn.disabled = false;
+                    });
+            });
+        }
+        
+        function uploadImageToImgBB(imageFile) {
+            return new Promise((resolve, reject) => {
+                const formData = new FormData();
+                formData.append('image', imageFile);
+                
+                fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        resolve(data.data.url);
+                    } else {
+                        reject(new Error(data.error.message || 'Image upload failed'));
+                    }
+                })
+                .catch(error => {
+                    reject(error);
+                });
+            });
+        }
+        
+        function transferBalance() {
+            const amount = parseInt(document.getElementById('transfer-amount').value);
+            const friendId = document.getElementById('friend-id').value;
+            
+            if (!amount || amount <= 0) {
+                alert('Please enter a valid amount');
+                return;
+            }
+            
+            if (transferType === 'friend' && !friendId) {
+                alert('Please enter your friend\'s User ID');
+                return;
+            }
+            
+            if (!userId) return;
+            
+            const balanceRef = db.collection('userBalances').doc(userId);
+            
+            balanceRef.get().then((doc) => {
+                if (doc.exists) {
+                    const currentBalance = doc.data().GoogleReviewEarn || 0;
+                    
+                    if (amount > currentBalance) {
+                        alert('Insufficient GR balance');
+                        return;
+                    }
+                    
+                    if (transferType === 'own') {
+                        const userRef = db.collection('users').doc(userId);
+                        
+                        userRef.update({
+                            balance: firebase.firestore.FieldValue.increment(amount)
+                        }).then(() => {
+                            balanceRef.update({
+                                GoogleReviewEarn: firebase.firestore.FieldValue.increment(-amount),
+                                updated_at: new Date().toISOString()
+                            }).then(() => {
+                                const historyRef = db.collection('transferHistory').doc();
+                                historyRef.set({
+                                    user_id: userId,
+                                    type: 'own',
+                                    amount: amount,
+                                    status: 'completed',
+                                    created_at: new Date().toISOString()
+                                }).then(() => {
+                                    showSuccessPopup('Transfer Successful', `Successfully transferred ${amount}৳ to your main balance`);
+                                    transferModal.style.display = 'none';
+                                    loadUserData();
+                                });
+                            });
+                        });
+                    } else {
+                        const friendBalanceRef = db.collection('userBalances').doc(friendId);
+                        
+                        db.collection('users').doc(friendId).get().then((friendDoc) => {
+                            if (!friendDoc.exists) {
+                                alert('Friend user not found');
+                                return;
+                            }
+                            
+                            const friendData = friendDoc.data();
+                            
+                            friendBalanceRef.set({
+                                user_id: friendId,
+                                GoogleReviewEarn: firebase.firestore.FieldValue.increment(amount),
+                                updated_at: new Date().toISOString()
+                            }, { merge: true }).then(() => {
+                                balanceRef.update({
+                                    GoogleReviewEarn: firebase.firestore.FieldValue.increment(-amount),
+                                    updated_at: new Date().toISOString()
+                                }).then(() => {
+                                    const historyRef = db.collection('transferHistory').doc();
+                                    historyRef.set({
+                                        user_id: userId,
+                                        friend_id: friendId,
+                                        friend_name: `${friendData.first_name} ${friendData.last_name || ''}`,
+                                        type: 'friend',
+                                        amount: amount,
+                                        status: 'completed',
+                                        created_at: new Date().toISOString()
+                                    }).then(() => {
+                                        showSuccessPopup('Transfer Successful', `Successfully transferred ${amount}৳ to ${friendData.first_name} ${friendData.last_name || ''}`);
+                                        transferModal.style.display = 'none';
+                                        loadUserData();
+                                    });
+                                });
+                            });
+                        }).catch((error) => {
+                            console.error("Error transferring to friend: ", error);
+                            alert('Error transferring balance. Please try again.');
+                        });
+                    }
+                } else {
+                    alert('No GR balance found');
+                }
+            });
+        }
+        
+        function showSuccessPopup(title, message) {
+            document.getElementById('success-title').textContent = title;
+            document.getElementById('success-message').textContent = message;
+            successPopup.style.display = 'block';
+            overlay.style.display = 'block';
+        }
+        
+        function closeSuccessPopup() {
+            successPopup.style.display = 'none';
+            overlay.style.display = 'none';
+        }
+        
+        // Close modals if clicked outside
+        window.addEventListener('click', (event) => {
+            if (event.target === taskModal) {
+                taskModal.style.display = 'none';
+            }
+            if (event.target === transferModal) {
+                transferModal.style.display = 'none';
+            }
+            if (event.target === overlay) {
+                successPopup.style.display = 'none';
+                overlay.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+                  </html>
