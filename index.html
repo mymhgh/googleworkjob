@@ -944,6 +944,9 @@
                         last_name: user.last_name || '',
                         username: user.username,
                         photo_url: user.photo_url || '',
+                        balance: 0,
+                        total_work: 0,
+                        pending_work: 0,
                         created_at: new Date().toISOString(),
                         last_login: new Date().toISOString()
                     });
@@ -952,7 +955,6 @@
                     balanceRef.set({
                         user_id: userId,
                         GoogleReviewEarn: 0,
-                        balance: 0, // নতুন ব্যালেন্স ফিল্ড যোগ করা হয়েছে
                         updated_at: new Date().toISOString()
                     });
                     
@@ -974,23 +976,23 @@
         function loadUserData() {
             if (!userId) return;
             
-            // Load main balance from userBalances collection (নতুন লোকেশন)
+            // Load main balance from users collection
+            const userRef = db.collection('users').doc(userId);
+            userRef.get().then((doc) => {
+                if (doc.exists) {
+                    const userData = doc.data();
+                    mainBalance.textContent = `${userData.balance || 0}৳`;
+                    totalWork.textContent = userData.total_work || 0;
+                    pendingWork.textContent = userData.pending_work || 0;
+                }
+            });
+            
+            // Load GR balance (only approved earnings)
             const balanceRef = db.collection('userBalances').doc(userId);
             balanceRef.get().then((doc) => {
                 if (doc.exists) {
                     const data = doc.data();
-                    mainBalance.textContent = `${data.balance || 0}৳`;
                     grBalance.textContent = `${data.GoogleReviewEarn || 0}৳`;
-                }
-            });
-            
-            // Load work statistics from UserGoogleReviewWork collection (নতুন লোকেশন)
-            const userWorkRef = db.collection('UserGoogleReviewWork').doc(userId);
-            userWorkRef.get().then((doc) => {
-                if (doc.exists) {
-                    const data = doc.data();
-                    totalWork.textContent = data.total_work || 0;
-                    pendingWork.textContent = data.pending_work || 0;
                 }
             });
         }
@@ -1039,43 +1041,13 @@
                     
                     return Promise.all(taskPromises).then((tasksWithCounters) => {
                         allTasks = tasksWithCounters.filter(task => !task.counter.completed);
-                        // Check which tasks user has already completed
-                        return checkUserCompletedTasks(allTasks);
+                        displayTasks(allTasks);
                     });
-                })
-                .then((filteredTasks) => {
-                    displayTasks(filteredTasks);
                 })
                 .catch((error) => {
                     tasksLoader.style.display = 'none';
                     tasksContainer.innerHTML = '<div class="no-tasks">Error loading tasks. Please try again.</div>';
                     console.error("Error loading tasks: ", error);
-                });
-        }
-        
-        function checkUserCompletedTasks(tasks) {
-            if (!userId || tasks.length === 0) return Promise.resolve(tasks);
-            
-            return db.collection('GoogleReviewTask')
-                .where('user_id', '==', userId)
-                .where('status', 'in', ['pending', 'approved'])
-                .get()
-                .then((querySnapshot) => {
-                    const completedTaskIds = new Set();
-                    
-                    querySnapshot.forEach((doc) => {
-                        const taskData = doc.data();
-                        if (taskData.task_id) {
-                            completedTaskIds.add(taskData.task_id);
-                        }
-                    });
-                    
-                    // Filter out tasks that user has already completed
-                    return tasks.filter(task => !completedTaskIds.has(task.id));
-                })
-                .catch((error) => {
-                    console.error("Error checking completed tasks: ", error);
-                    return tasks;
                 });
         }
         
@@ -1138,7 +1110,7 @@
             const searchTerm = taskSearch.value.toLowerCase().trim();
             
             if (!searchTerm) {
-                loadTasks();
+                displayTasks(allTasks);
                 return;
             }
             
@@ -1203,33 +1175,29 @@
                 });
             }
             
-            // Handle video display based on admin requirement
-            if (task.video_url && task.show_video !== false) {
+            if (task.video_url) {
                 document.getElementById('modal-task-video').src = task.video_url;
                 document.getElementById('modal-task-video-container').style.display = 'block';
             } else {
                 document.getElementById('modal-task-video-container').style.display = 'none';
             }
             
-            // Handle work link display based on admin requirement
-            if (task.work_link && task.show_work_link !== false) {
+            if (task.work_link) {
                 goWorkBtn.style.display = 'block';
             } else {
                 goWorkBtn.style.display = 'none';
             }
             
-            // Handle screenshot requirement based on admin setting
-            if (task.require_screenshot === true) {
-                screenshotInputContainer.style.display = 'block';
+            if (task.require_screenshot !== undefined) {
+                screenshotInputContainer.style.display = task.require_screenshot ? 'block' : 'none';
             } else {
-                screenshotInputContainer.style.display = 'none';
+                screenshotInputContainer.style.display = 'block';
             }
             
-            // Handle review link requirement based on admin setting
-            if (task.require_review_link === true) {
-                reviewLinkInputContainer.style.display = 'block';
+            if (task.require_review_link !== undefined) {
+                reviewLinkInputContainer.style.display = task.require_review_link ? 'block' : 'none';
             } else {
-                reviewLinkInputContainer.style.display = 'none';
+                reviewLinkInputContainer.style.display = 'block';
             }
         }
         
@@ -1243,25 +1211,28 @@
         }
         
         function handleScreenshotUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    screenshotStatus.innerHTML = '<span class="loading"><i class="fas fa-spinner fa-spin"></i> Uploading...</span>';
+    uploadLoading.style.display = 'block';
+    
+    uploadImageToImgBB(file)
+        .then(imageUrl => {
+            uploadedScreenshotUrl = imageUrl;  // ✅ এই লাইনটি নিশ্চিত করুন যে আছে
+            screenshotStatus.innerHTML = '<span class="success"><i class="fas fa-check-circle"></i> Uploaded successfully!</span>';
+            uploadLoading.style.display = 'none';
             
-            screenshotStatus.innerHTML = '<span class="loading"><i class="fas fa-spinner fa-spin"></i> Uploading...</span>';
-            uploadLoading.style.display = 'block';
-            
-            uploadImageToImgBB(file)
-                .then(imageUrl => {
-                    uploadedScreenshotUrl = imageUrl;
-                    screenshotStatus.innerHTML = '<span class="success"><i class="fas fa-check-circle"></i> Uploaded successfully!</span>';
-                    uploadLoading.style.display = 'none';
-                })
-                .catch(error => {
-                    uploadedScreenshotUrl = null;
-                    screenshotStatus.innerHTML = '<span style="color: #f44336;"><i class="fas fa-times-circle"></i> Upload failed</span>';
-                    uploadLoading.style.display = 'none';
-                    console.error('Error uploading screenshot:', error);
-                });
-        }
+            // ✅ ডিবাগিং জন্য কনসোলে প্রিন্ট করুন
+            console.log('Image uploaded successfully:', uploadedScreenshotUrl);
+        })
+        .catch(error => {
+            uploadedScreenshotUrl = null;  // ✅ ফেইল হলে null সেট করুন
+            screenshotStatus.innerHTML = '<span style="color: #f44336;"><i class="fas fa-times-circle"></i> Upload failed</span>';
+            uploadLoading.style.display = 'none';
+            console.error('Error uploading screenshot:', error);
+        });
+}
         
         function openTransferModal() {
             connectAndLoadData();
@@ -1381,30 +1352,38 @@ User ID: ${userId}
         }
         
         function submitTask() {
-            let reviewLink = reviewLinkInput.value;
-            
-            if (!reviewLink) {
-                alert('Please provide review link');
-                return;
-            }
-            
-            // Check if screenshot is required and uploaded
-            if (currentTaskData.require_screenshot === true && !uploadedScreenshotUrl) {
-                alert('Please upload screenshot first');
-                return;
-            }
-            
-            if (!userId || !currentTaskId) return;
-            
-            checkDuplicateURL(reviewLink).then((isDuplicate) => {
-                if (isDuplicate) {
-                    alert('You have already submitted this review link. Please submit a unique review link.');
-                    return;
-                }
-                
-                submitTaskBtn.disabled = true;
-                submitTaskBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
-                
+    let reviewLink = reviewLinkInput.value;
+    
+    if (!reviewLink) {
+        alert('Please provide review link');
+        return;
+    }
+    
+    // ✅ নতুন চেক যোগ করুন: ইমেজ আপলোড হয়েছে কিনা
+    if (currentTaskData.require_screenshot !== false && !uploadedScreenshotUrl) {
+        alert('Please upload screenshot first');
+        return;
+    }
+    
+    // ✅ ডিবাগিং জন্য কনসোলে প্রিন্ট করুন
+    console.log('Submitting task with screenshot URL:', uploadedScreenshotUrl);
+    
+    if (!userId || !currentTaskId) return;
+    
+    // বাকি কোড একই থাকবে...
+    checkDuplicateURL(reviewLink).then((isDuplicate) => {
+        if (isDuplicate) {
+            alert('You have already submitted this review link. Please submit a unique review link.');
+            return;
+        }
+        
+        // ✅ সাবমিট করার সময় আবার চেক করুন
+        console.log('Final screenshot URL before saving:', uploadedScreenshotUrl);
+        
+        submitTaskBtn.disabled = true;
+        submitTaskBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+        
+        // বাকি কোড একই থাকবে...
                 db.collection('AdminTasks').doc(currentTaskId).get()
                     .then((taskDoc) => {
                         if (!taskDoc.exists) {
@@ -1454,16 +1433,23 @@ User ID: ${userId}
                         });
                     })
                     .then(({ submissionId, taskAmount, isCompleted }) => {
-                        // Update UserGoogleReviewWork collection only (নতুন লোকেশন)
-                        const userWorkRef = db.collection('UserGoogleReviewWork').doc(userId);
-                        return userWorkRef.set({
-                            user_id: userId,
-                            today_work: firebase.firestore.FieldValue.increment(1),
-                            total_work: firebase.firestore.FieldValue.increment(1),
+                        // Update user data (only pending work count, NOT balance)
+                        const userRef = db.collection('users').doc(userId);
+                        return userRef.update({
                             pending_work: firebase.firestore.FieldValue.increment(1),
-                            updated_at: new Date().toISOString()
-                        }, { merge: true }).then(() => {
-                            return { submissionId, taskAmount, isCompleted };
+                            total_work: firebase.firestore.FieldValue.increment(1)
+                        }).then(() => {
+                            // Update UserGoogleReviewWork (only pending work count)
+                            const userWorkRef = db.collection('UserGoogleReviewWork').doc(userId);
+                            return userWorkRef.set({
+                                user_id: userId,
+                                today_work: firebase.firestore.FieldValue.increment(1),
+                                total_work: firebase.firestore.FieldValue.increment(1),
+                                pending_work: firebase.firestore.FieldValue.increment(1),
+                                updated_at: new Date().toISOString()
+                            }, { merge: true }).then(() => {
+                                return { submissionId, taskAmount, isCompleted };
+                            });
                         });
                     })
                     .then(({ submissionId, taskAmount, isCompleted }) => {
@@ -1555,23 +1541,27 @@ User ID: ${userId}
                     }
                     
                     if (transferType === 'own') {
-                        // Transfer to own main balance (নতুন লোকেশন)
-                        balanceRef.update({
-                            GoogleReviewEarn: firebase.firestore.FieldValue.increment(-amount),
-                            balance: firebase.firestore.FieldValue.increment(amount),
-                            updated_at: new Date().toISOString()
+                        const userRef = db.collection('users').doc(userId);
+                        
+                        userRef.update({
+                            balance: firebase.firestore.FieldValue.increment(amount)
                         }).then(() => {
-                            const historyRef = db.collection('transferHistory').doc();
-                            historyRef.set({
-                                user_id: userId,
-                                type: 'own',
-                                amount: amount,
-                                status: 'completed',
-                                created_at: new Date().toISOString()
+                            balanceRef.update({
+                                GoogleReviewEarn: firebase.firestore.FieldValue.increment(-amount),
+                                updated_at: new Date().toISOString()
                             }).then(() => {
-                                showSuccessPopup('Transfer Successful', `Successfully transferred ${amount}৳ to your main balance`);
-                                transferModal.style.display = 'none';
-                                loadUserData();
+                                const historyRef = db.collection('transferHistory').doc();
+                                historyRef.set({
+                                    user_id: userId,
+                                    type: 'own',
+                                    amount: amount,
+                                    status: 'completed',
+                                    created_at: new Date().toISOString()
+                                }).then(() => {
+                                    showSuccessPopup('Transfer Successful', `Successfully transferred ${amount}৳ to your main balance`);
+                                    transferModal.style.display = 'none';
+                                    loadUserData();
+                                });
                             });
                         });
                     } else {
